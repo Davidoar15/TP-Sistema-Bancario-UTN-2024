@@ -1,5 +1,6 @@
 #include<iostream>
 #include<string.h>
+#include<cstring>
 
 using namespace std;
 
@@ -18,7 +19,6 @@ void inicializarArchivoClientes();
 int generarIdCliente();
 bool existeCliente(const char* dni, const char* username);
 void agregarCliente();
-void mostrarClientes();
 
 int main() {
     inicializarArchivoClientes();
@@ -26,25 +26,22 @@ int main() {
     int opcion;
     do {
         cout<<"1. Agregar cliente"<<endl;
-        cout<<"2. Mostrar clientes"<<endl;
-        cout<<"3. Salir"<<endl;
+        cout<<"2. Salir"<<endl;
         cout<<"Ingrese una opcion: ";
         cin>>opcion;
 
         switch (opcion) {
             case 1:
+            	system("cls");
                 agregarCliente();
                 break;
             case 2:
-                mostrarClientes();
-                break;
-            case 3:
                 cout<<"Saliendo..."<<endl;
                 break;
             default:
                 cout<<"Opcion no valida."<<endl;
         }
-    } while (opcion != 3);
+    } while (opcion != 2);
 
     return 0;
 }
@@ -126,7 +123,8 @@ void agregarCliente() {
 	cin.getline(cliente.clave, 25);
 	
 	if (existeCliente(cliente.dni, cliente.username)) {
-    	cout << "Error: Ya existe un cliente con mismo DNI o username." << endl;
+    	cout<<"Error: Ya existe un cliente con mismo DNI o username."<<endl;
+    	cout<<endl;
     	return;
     }
 	
@@ -141,23 +139,7 @@ void agregarCliente() {
 	} else {
 		cerr<<"Error al abrir el archivo de clientes."<<endl;
 	}
+	
+	cout<<endl;
 }
 
-void mostrarClientes() {
-	FILE* arcClientes = fopen(ARCHIVO_CLIENTES, "rb");
-	if (arcClientes) {
-		Cliente cliente;
-		
-		while (fread(&cliente, sizeof(Cliente), 1, arcClientes)) {
-			cout<<"ID-Cliente: " << cliente.id <<endl;
-            cout<<"Nombre: " << cliente.nombre <<endl;
-            cout<<"DNI: " << cliente.dni <<endl;
-            cout<<"Username: " << cliente.username <<endl;
-            cout<<"Saldo: " << cliente.saldo <<endl;
-            cout<<"-------------------------" <<endl;
-		}
-		fclose(arcClientes);
-	} else {
-		cerr<<"Error al abrir el archivo de clientes."<<endl;
-	}
-}
