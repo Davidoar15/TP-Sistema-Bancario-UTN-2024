@@ -2,6 +2,7 @@
 #include<string>
 #include<cstring>
 #include<ctime>
+#include<stdlib.h>
 
 using namespace std;
 
@@ -18,10 +19,9 @@ void inicializarArchivoTransacciones();
 void ordenarTransaccionesPorFecha(Transaccion transacciones[], int n);
 int contarTransacciones();
 int contarTransaccionesPorUsuario(const char* username);
-void listarTransacciones();
-void listarTransaccionesPaginadas(const char* username, int pagina, int tamPagina);
+void listarTransaccionesPaginadas(const char* username, int tamPagina);
 void listarIngresosEgresosPorMes(const char* username);
-void mostrarTransaccionMaxima();
+void mostrarTransaccionMaxima(const char* username);
 int obtenerFechaActual();
 void mostrarClienteMasIngresosUltimos30Dias();
 
@@ -30,54 +30,55 @@ int main() {
 	char username[25];
 	int pagina;
 	
+	cout<<"Sistema de Analisis. Bienvenido"<<endl;
+	cout<<endl;
+	
     int opcion;
     do {
-        cout<<"1. Listar transacciones"<<endl;
-        cout<<"2. Listar transacciones de un cliente"<<endl;
-        cout<<"3. Listar ingresos y egresos por mes de un cliente"<<endl;
-        cout<<"4. Mostrar transaccion de monto maximo de todos los clientes"<<endl;
-        cout<<"5. Mostrar cliente con mas ingresos en los ultimos 30 dias"<<endl;
-        cout<<"6. Salir"<<endl;
+        cout<<"1. Listar transacciones de un cliente"<<endl;
+        cout<<"2. Listar ingresos y egresos por mes de un cliente"<<endl;
+        cout<<"3. Mostrar transaccion de monto maximo de todos los clientes"<<endl;
+        cout<<"4. Mostrar cliente con mas ingresos en los ultimos 30 dias"<<endl;
+        cout<<"5. Salir"<<endl;
         cout<<"Ingrese una opcion: ";
         cin>>opcion;
 
         switch (opcion) {
             case 1:
             	system("cls");
-                listarTransacciones();
-                break;
-            case 2:
-            	system("cls");
             	cout<<"Ingrese el username del cliente: ";
             	cin>>username;
             	
-            	cout<<"Ingrese el numero de pagina: ";
-            	cin>>pagina;
-            	
-                listarTransaccionesPaginadas(username, pagina, 5);
+                listarTransaccionesPaginadas(username, 5);
                 break;
-            case 3: 
+            case 2: 
             	system("cls");
             	cout<<"Ingrese el username del cliente: ";
             	cin>>username;
             	
             	listarIngresosEgresosPorMes(username);
             	break;
+            case 3:
+            	system("cls");
+            	cout<<"Ingrese el username del cliente: ";
+				cin>>username;
+            	
+            	mostrarTransaccionMaxima(username);
+            	break;
             case 4:
             	system("cls");
-            	mostrarTransaccionMaxima();
-            	break;
-            case 5:
-            	system("cls");
+            	
             	mostrarClienteMasIngresosUltimos30Dias();
             	break;
-            case 6:
+            case 5:
+            	cout<<endl;
 				cout<<"Saliendo..."<<endl;
 				break; 
             default:
                 cout<<"Opcion no valida."<<endl;
+                cout<<endl;
         }
-    } while (opcion != 6);
+    } while (opcion != 5);
 
     return 0;
 }
@@ -89,7 +90,6 @@ void inicializarArchivoTransacciones() {
 		arcTransacciones = fopen(ARCHIVO_TRANSACCIONES, "wb");
 		
 		if (arcTransacciones) {
-			cout<<"Archivo de transacciones creado exitosamente."<<endl;
 			fclose(arcTransacciones);
 		} else {
 			cerr<<"Error al crear el archivo de transacciones."<<endl;
@@ -144,29 +144,8 @@ int contarTransaccionesPorUsuario(const char* username) {
     return contador;
 }
 
-void listarTransacciones() {
-	FILE* arcTransacciones = fopen(ARCHIVO_TRANSACCIONES, "rb");
-	
-	if (arcTransacciones) {
-		Transaccion transaccion;
-		
-		while (fread(&transaccion, sizeof(Transaccion), 1, arcTransacciones)) {
-			cout<<"ID-Transaccion: "<<transaccion.id<<endl;
-			cout<<"Username: "<<transaccion.username<<endl;
-			cout<<"Fecha: "<<transaccion.fecha<<endl;
-			cout<<"Monto: "<<transaccion.monto<<endl;
-			cout<<"-------------------------"<<endl;
-		}
-		fclose(arcTransacciones);
-	} else {
-		cerr<<"Error al abrir el archivo transacciones."<<endl;
-	}
-	
-	cout<<endl;
-}
-
 // Función para listar transacciones con paginación
-void listarTransaccionesPaginadas(const char* username, int pagina, int tamPagina) {
+void listarTransaccionesPaginadas(const char* username, int tamPagina) {
 	int totalTransacciones = contarTransaccionesPorUsuario(username);
 	Transaccion* transacciones = new Transaccion[totalTransacciones]; //Array Dinamico
 	
@@ -187,24 +166,43 @@ void listarTransaccionesPaginadas(const char* username, int pagina, int tamPagin
         // Ordenar por fecha
         ordenarTransaccionesPorFecha(transacciones, contador);
 
-        // Paginación
-        int inicio = (pagina - 1) * tamPagina;
-        int fin = inicio + tamPagina;
+        int pagina = 1;
+        int totalPaginas = (contador + tamPagina - 1) / tamPagina;
 
-        if (inicio < contador) {
-            for (int i = inicio; i < fin && i < contador; i++) {
-                cout << "ID-Transaccion: " << transacciones[i].id << endl;
-                cout << "Fecha: " << transacciones[i].fecha << endl;
-                cout << "Monto: " << transacciones[i].monto << endl;
-                cout << "-------------------------" << endl;
+        while (true) {
+            int inicio = (pagina - 1) * tamPagina;
+            int fin = inicio + tamPagina;
+
+            cout<<"Pagina "<<pagina<<" de "<<totalPaginas<<endl;
+            cout<<"-------------------------"<<endl;
+
+            if (inicio < contador) {
+                for (int i = inicio; i < fin && i < contador; i++) {
+                    cout<<"ID-Transaccion: "<<transacciones[i].id<<endl;
+                    cout<<"Fecha: "<<transacciones[i].fecha<<endl;
+                    cout<<"Monto: "<<transacciones[i].monto<<endl;
+                    cout<<"-------------------------"<<endl;
+                }
+
+                if (pagina < totalPaginas) {
+                    cout<<"Presione Enter para ver la siguiente pagina..."<<endl;
+                    cin.ignore();
+                    cin.get();
+                    pagina++;
+                } else {
+                    cout<<"No hay mas paginas para mostrar."<<endl;
+                    break;
+                }
+            } else {
+                cout<<"No hay transacciones para mostrar en esta pagina."<<endl;
+                break;
             }
-        } else {
-            cout << "No hay mas transacciones para mostrar en esta pagina." << endl;
         }
     } else {
-        cerr << "Error al abrir el archivo transacciones." << endl;
+        cerr<<"Error al abrir el archivo transacciones."<<endl;
     }
     
+    delete[] transacciones;
     cout<<endl;
 }
 
@@ -236,6 +234,7 @@ void listarIngresosEgresosPorMes(const char* username) {
         cout<<"Ingresos por mes: "<<endl;
         for (int i = 0; i < 12; i++) {
             cout<<"Mes "<<i + 1<<": "<<ingresosPorMes[i]<<" ingresos"<<endl;
+            cout<<endl;
         }
 		
 		cout<<endl;
@@ -243,6 +242,7 @@ void listarIngresosEgresosPorMes(const char* username) {
         cout << "Egresos por mes: " << endl;
         for (int i = 0; i < 12; i++) {
             cout<<"Mes "<<i + 1<<": "<<egresosPorMes[i]<<" egresos"<<endl;
+            cout<<endl;
         }
     } else {
         cerr<<"Error al abrir el archivo transacciones."<<endl;
@@ -252,30 +252,31 @@ void listarIngresosEgresosPorMes(const char* username) {
 }
 
 // Función para mostrar la transacción de monto máximo de todos los clientes
-void mostrarTransaccionMaxima() {
+void mostrarTransaccionMaxima(const char* username) {
     FILE* arcTransacciones = fopen(ARCHIVO_TRANSACCIONES, "rb");
 
     if (arcTransacciones) {
         Transaccion transaccion;
         Transaccion maxTransaccion;
-        bool primero = true;
+        bool encontrado = false;
 
         while (fread(&transaccion, sizeof(Transaccion), 1, arcTransacciones)) {
-            if (primero || transaccion.monto > maxTransaccion.monto) {
-                maxTransaccion = transaccion;
-                primero = false;
+            if (strcmp(transaccion.username, username) == 0) {
+                if (!encontrado || abs(transaccion.monto) > abs(maxTransaccion.monto)) {
+                    maxTransaccion = transaccion;
+                    encontrado = true;
+                }
             }
         }
         fclose(arcTransacciones);
 
-        if (!primero) {  // Si hemos encontrado alguna transacción
-            cout<<"Transaccion con monto maximo:"<<endl;
+        if (encontrado) {
+            cout<<"Transaccion con monto maximo para el usuario "<<username<<":"<<endl;
             cout<<"ID-Transaccion: "<<maxTransaccion.id<<endl;
-            cout<<"Username: "<<maxTransaccion.username<<endl;
             cout<<"Fecha: "<<maxTransaccion.fecha<<endl;
             cout<<"Monto: "<<maxTransaccion.monto<<endl;
         } else {
-            cout<<"No se encontraron transacciones."<<endl;
+            cout<<"No se encontraron transacciones para el usuario "<<username<<"."<<endl;
         }
     } else {
         cerr<<"Error al abrir el archivo transacciones."<<endl;

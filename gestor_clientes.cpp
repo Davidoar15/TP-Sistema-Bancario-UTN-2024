@@ -23,6 +23,9 @@ void agregarCliente();
 int main() {
     inicializarArchivoClientes();
 
+	cout<<"Sea bienvenido a nuestro registro del Banco"<<endl;
+	cout<<endl;
+
     int opcion;
     do {
         cout<<"1. Agregar cliente"<<endl;
@@ -33,13 +36,16 @@ int main() {
         switch (opcion) {
             case 1:
             	system("cls");
+            	
                 agregarCliente();
                 break;
             case 2:
+            	cout<<endl;
                 cout<<"Saliendo..."<<endl;
                 break;
             default:
                 cout<<"Opcion no valida."<<endl;
+                cout<<endl;
         }
     } while (opcion != 2);
 
@@ -53,14 +59,10 @@ void inicializarArchivoClientes() {
 		arcClientes = fopen(ARCHIVO_CLIENTES, "wb");
 		
 		if (arcClientes) {
-			cout<<"Archivo de clientes creado exitosamente."<<endl;
+			fclose(arcClientes);
 		} else {
 			cerr<<"Error al crear el archivo de clientes."<<endl;
 		}
-	}
-	
-	if (arcClientes) {
-		fclose(arcClientes);
 	}
 }
 
