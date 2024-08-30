@@ -17,7 +17,7 @@ const char* ARCHIVO_CLIENTES = "clientes.dat";
 
 void inicializarArchivoClientes();
 int generarIdCliente();
-bool existeCliente(const char* dni, const char* username);
+bool existeCliente(char* dni, char* username);
 void agregarCliente();
 
 int main() {
@@ -86,7 +86,7 @@ int generarIdCliente() {
 	return maxId + 1;
 }
 
-bool existeCliente(const char* dni, const char* username) {
+bool existeCliente(char* dni, char* username) {
 	FILE* arcClientes = fopen(ARCHIVO_CLIENTES, "rb");
 	
 	if (!arcClientes) {

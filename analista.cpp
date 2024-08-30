@@ -18,10 +18,10 @@ const char* ARCHIVO_TRANSACCIONES = "transacciones.dat";
 void inicializarArchivoTransacciones();
 void ordenarTransaccionesPorFecha(Transaccion transacciones[], int n);
 int contarTransacciones();
-int contarTransaccionesPorUsuario(const char* username);
-void listarTransaccionesPaginadas(const char* username, int tamPagina);
-void listarIngresosEgresosPorMes(const char* username);
-void mostrarTransaccionMaxima(const char* username);
+int contarTransaccionesPorUsuario(char* username);
+void listarTransaccionesPaginadas(char* username, int tamPagina);
+void listarIngresosEgresosPorMes(char* username);
+void mostrarTransaccionMaxima(char* username);
 int obtenerFechaActual();
 void mostrarClienteMasIngresosUltimos30Dias();
 
@@ -94,8 +94,6 @@ void inicializarArchivoTransacciones() {
 		} else {
 			cerr<<"Error al crear el archivo de transacciones."<<endl;
 		}
-	} else {
-		fclose(arcTransacciones);
 	}
 }
 
@@ -127,7 +125,7 @@ int contarTransacciones() {
     return contador;
 }
 
-int contarTransaccionesPorUsuario(const char* username) {
+int contarTransaccionesPorUsuario(char* username) {
     FILE* arcTransacciones = fopen(ARCHIVO_TRANSACCIONES, "rb");
     int contador = 0;
 
@@ -145,8 +143,15 @@ int contarTransaccionesPorUsuario(const char* username) {
 }
 
 // Función para listar transacciones con paginación
-void listarTransaccionesPaginadas(const char* username, int tamPagina) {
+void listarTransaccionesPaginadas(char* username, int tamPagina) {
 	int totalTransacciones = contarTransaccionesPorUsuario(username);
+	if (totalTransacciones == 0) {
+        cout<<"No hay transacciones para mostrar."<<endl;
+        cout<<endl;
+        
+        return;
+    }
+	
 	Transaccion* transacciones = new Transaccion[totalTransacciones]; //Array Dinamico
 	
     FILE* arcTransacciones = fopen(ARCHIVO_TRANSACCIONES, "rb");
@@ -207,7 +212,7 @@ void listarTransaccionesPaginadas(const char* username, int tamPagina) {
 }
 
 // Función para listar la cantidad de ingresos y egresos por mes de un cliente
-void listarIngresosEgresosPorMes(const char* username) {
+void listarIngresosEgresosPorMes(char* username) {
     FILE* arcTransacciones = fopen(ARCHIVO_TRANSACCIONES, "rb");
 
     if (arcTransacciones) {
@@ -252,7 +257,7 @@ void listarIngresosEgresosPorMes(const char* username) {
 }
 
 // Función para mostrar la transacción de monto máximo de todos los clientes
-void mostrarTransaccionMaxima(const char* username) {
+void mostrarTransaccionMaxima(char* username) {
     FILE* arcTransacciones = fopen(ARCHIVO_TRANSACCIONES, "rb");
 
     if (arcTransacciones) {
@@ -299,45 +304,52 @@ int obtenerFechaActual() {
 void mostrarClienteMasIngresosUltimos30Dias() {
     FILE* arcTransacciones = fopen(ARCHIVO_TRANSACCIONES, "rb");
 
-        if (arcTransacciones) {
+    if (arcTransacciones) {
         Transaccion transaccion;
         
         const int fechaActual = obtenerFechaActual();
         const int fechaLimite = fechaActual - 100; // 100 = aproximadamente 30 dias
         
-        double ingresosPorCliente[100] = {0}; // Asume un máximo de 100 clientes diferentes
-        char clientes[100][25];
-        int cantClientes = 0;
+        double maxIngresos = 0;
+        int maxCantIngresos = 0;
+        char clienteMaxIngresos[25] = "";
 
         while (fread(&transaccion, sizeof(Transaccion), 1, arcTransacciones)) {
             if (transaccion.fecha >= fechaLimite && transaccion.monto > 0) {
-                bool clienteExistente = false;
-                for (int i = 0; i < cantClientes; i++) {
-                    if (strcmp(clientes[i], transaccion.username) == 0) {
-                        ingresosPorCliente[i] += transaccion.monto;
-                        clienteExistente = true;
-                        break;
+                double totalIngresos = transaccion.monto;
+                int cantIngresos = 1;
+                
+                FILE* arcTemp = fopen(ARCHIVO_TRANSACCIONES, "rb");
+                Transaccion tempTransaccion;
+                
+                while (fread(&tempTransaccion, sizeof(Transaccion), 1, arcTemp)) {
+                    if (
+						tempTransaccion.fecha >= fechaLimite && 
+						tempTransaccion.monto > 0 &&
+                        strcmp(transaccion.username, tempTransaccion.username) == 0 && 
+                        tempTransaccion.id != transaccion.id
+					) {
+                        totalIngresos += tempTransaccion.monto;
+                        cantIngresos++;
                     }
                 }
-                if (!clienteExistente) {
-                    strcpy(clientes[cantClientes], transaccion.username);
-                    ingresosPorCliente[cantClientes] = transaccion.monto;
-                    cantClientes++;
+                
+                fclose(arcTemp);
+                
+                if (totalIngresos > maxIngresos) {
+                    maxIngresos = totalIngresos;
+                    maxCantIngresos = cantIngresos;
+                    strcpy(clienteMaxIngresos, transaccion.username);
                 }
-            }
-        }
-        fclose(arcTransacciones);
-
-        int indiceMaximo = 0;
-        for (int i = 1; i < cantClientes; i++) {
-            if (ingresosPorCliente[i] > ingresosPorCliente[indiceMaximo]) {
-                indiceMaximo = i;
-            }
-        }
-
-        if (cantClientes > 0) {
-            cout<<"El cliente con mas ingresos en los ultimos 30 dias es: "<<clientes[indiceMaximo]<<endl;
-            cout<<"Ingresos: "<<ingresosPorCliente[indiceMaximo]<<endl;
+        	}
+    	}
+    	
+    	fclose(arcTransacciones);
+    	
+    	if (strlen(clienteMaxIngresos) > 0) {
+            cout<<"El cliente con mas ingresos en los ultimos 30 dias es: "<<clienteMaxIngresos<<endl;
+            cout<<"Cantidad de ingresos: "<<maxCantIngresos<<endl;
+            cout<<"Total de ingresos: "<<maxIngresos<<endl;
         } else {
             cout<<"No hay transacciones en los ultimos 30 dias."<<endl;
         }

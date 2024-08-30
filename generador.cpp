@@ -26,39 +26,19 @@ const char* ARCHIVO_TRANSACCIONES = "transacciones.dat";
 
 void inicializarArchivoTransacciones();
 int generarIdTransaccion();
-bool validarUsuario(const char* username, const char* clave, Cliente& cliente);
-bool comprobarSaldo(const Cliente& cliente, double monto);
-void agregarTransaccion(const Cliente& cliente);
-void consultarSaldo(const char* username);
-void eliminarTransaccion(Cliente& cliente);
-int contarTransacciones(const char* username);
+bool validarUsuario(char* username, char* clave, Cliente& cliente);
+bool comprobarSaldo(Cliente& cliente, double monto);
+void actualizarSaldo(Cliente& cliente);
+void agregarTransaccion();
+void eliminarTransaccion();
+void consultarSaldo();
+int contarTransacciones(char* username);
 void ordenarTransaccionesPorFecha(Transaccion transacciones[], int n);
-void listarTransaccionesPaginadas(const char* username, int tamPagina);
+void listarTransaccionesPaginadas(int tamPagina);
 
 int main() {
     inicializarArchivoTransacciones();
-    
-    char username[25], clave[25];
-    Cliente cliente;
-
-    bool usuarioValido = false;
-    do {
-        cout<<"Ingrese Username: ";
-        cin.getline(username, 25);
-    
-        cout<<"Ingrese clave: ";
-        cin.getline(clave, 25);
-
-        if (!validarUsuario(username, clave, cliente)) {
-            cout<<"Usuario o clave incorrectos. Intente de nuevo."<<endl;
-            cout<<endl;
-        } else {
-            usuarioValido = true;
-        }
-    } while (!usuarioValido);
-
-	system("cls");
-	cout<<"Bienvenido "<<cliente.username<<endl;
+	cout<<"Bienvenido al Gestor de Transacciones"<<endl;
 	cout<<endl;
 
     int opcion;
@@ -75,22 +55,22 @@ int main() {
             case 1:
                 system("cls");
                 
-                agregarTransaccion(cliente);
+                agregarTransaccion();
                 break;
             case 2: 
             	system("cls");
             	
-            	listarTransaccionesPaginadas(cliente.username, 5);
+            	listarTransaccionesPaginadas(5);
             	break;
             case 3:
                 system("cls");
                 
-                consultarSaldo(cliente.username);
+                consultarSaldo();
                 break;
             case 4:
                 system("cls");
                 
-                eliminarTransaccion(cliente);
+                eliminarTransaccion();
                 break;
             case 5:
             	cout<<endl;
@@ -116,8 +96,6 @@ void inicializarArchivoTransacciones() {
         } else {
             cerr<<"Error al crear el archivo de transacciones."<<endl;
         }
-    } else {
-        fclose(arcTransacciones);
     }
 }
 
@@ -140,7 +118,7 @@ int generarIdTransaccion() {
     return maxId + 1;
 }
 
-bool validarUsuario(const char* username, const char* clave, Cliente& cliente) {
+bool validarUsuario(char* username, char* clave, Cliente& cliente) {
     FILE* arcClientes = fopen(ARCHIVO_CLIENTES, "rb");
 
     if (arcClientes) {
@@ -156,7 +134,7 @@ bool validarUsuario(const char* username, const char* clave, Cliente& cliente) {
     return false;
 }
 
-bool comprobarSaldo(const Cliente& cliente, double monto) {
+bool comprobarSaldo(Cliente& cliente, double monto) {
     if (cliente.saldo < monto) {
         cout<<"Saldo insuficiente. No se puede realizar la transaccion."<<endl;
         cout<<endl;
@@ -165,7 +143,40 @@ bool comprobarSaldo(const Cliente& cliente, double monto) {
     return true;
 }
 
-void agregarTransaccion(const Cliente& cliente) {
+void actualizarSaldo(Cliente& cliente) {
+	FILE* arcClientes = fopen(ARCHIVO_CLIENTES, "rb+");
+    if (arcClientes) {
+        Cliente clienteTemp;
+        while (fread(&clienteTemp, sizeof(Cliente), 1, arcClientes)) {
+            if (strcmp(clienteTemp.username, cliente.username) == 0) {
+                fseek(arcClientes, -sizeof(Cliente), SEEK_CUR);
+                fwrite(&cliente, sizeof(Cliente), 1, arcClientes);
+                break;
+            }
+        }
+        fclose(arcClientes);
+    } else {
+        cerr << "Error al abrir el archivo de clientes." << endl;
+    }
+}
+
+void agregarTransaccion() {
+	char username[25], clave[25];
+    
+    cout<<"Ingrese Username: ";
+    cin.ignore();
+    cin.getline(username, 25);
+    
+    cout<<"Ingrese clave: ";
+    cin.getline(clave, 25);
+    
+    Cliente cliente;
+    if (!validarUsuario(username, clave, cliente)) {
+    	cout<<"Usuario o clave incorrectos."<<endl;
+    	cout<<endl;
+        return;
+    }
+	
     Transaccion transaccion;
     transaccion.id = generarIdTransaccion();
 
@@ -198,56 +209,28 @@ void agregarTransaccion(const Cliente& cliente) {
         cerr<<"Error al abrir el archivo de transacciones."<<endl;
     }
 
-    // Actualizar saldo del cliente
-    Cliente clienteActualizado = cliente;
-    clienteActualizado.saldo += transaccion.monto;
-
-    FILE* arcClientes = fopen(ARCHIVO_CLIENTES, "rb+");
-    if (arcClientes) {
-        Cliente clienteTemp;
-        while (fread(&clienteTemp, sizeof(Cliente), 1, arcClientes)) {
-            if (strcmp(clienteTemp.username, transaccion.username) == 0) {
-                fseek(arcClientes, -sizeof(Cliente), SEEK_CUR);
-                fwrite(&clienteActualizado, sizeof(Cliente), 1, arcClientes);
-                break;
-            }
-        }
-        fclose(arcClientes);
-    } else {
-        cerr<<"Error al abrir el archivo de clientes."<<endl;
-    }
+	cliente.saldo += transaccion.monto;
+    actualizarSaldo(cliente);
 
     cout<<endl;
 }
 
-void consultarSaldo(const char* username) {
-    FILE* arcClientes = fopen(ARCHIVO_CLIENTES, "rb");
-    if (arcClientes) {
-        Cliente cliente;
-        bool clienteEncontrado = false;
-
-        // Leer clientes del archivo
-        while (fread(&cliente, sizeof(Cliente), 1, arcClientes)) {
-            // Comparar username
-            if (strcmp(cliente.username, username) == 0) {
-                cout<<"Saldo disponible: $"<<cliente.saldo<<endl;
-                clienteEncontrado = true;
-                break;
-            }
-        }
-        fclose(arcClientes);
-
-        if (!clienteEncontrado) {
-            cout<<"Cliente no encontrado."<<endl;
-        }
-    } else {
-        cerr<<"Error al abrir el archivo de clientes."<<endl;
+void eliminarTransaccion() {
+	char username[25], clave[25];
+	
+    cout<<"Ingrese Username: ";
+    cin.ignore();
+    cin.getline(username, 25);
+    
+    cout<<"Ingrese clave: ";
+    cin.getline(clave, 25);
+    
+    Cliente cliente;
+    if (!validarUsuario(username, clave, cliente)) {
+        cout<<"Usuario o clave incorrectos."<<endl;
+        return;
     }
-
-    cout<<endl;
-}
-
-void eliminarTransaccion(Cliente& cliente) {
+	
     int id;
     cout<<"Ingrese el ID de la transaccion a eliminar: ";
     cin>>id;
@@ -260,17 +243,12 @@ void eliminarTransaccion(Cliente& cliente) {
         bool encontrado = false;
 
         while (fread(&transaccion, sizeof(Transaccion), 1, arcTransacciones)) {
-            if (transaccion.id != id) {
-                fwrite(&transaccion, sizeof(Transaccion), 1, arcTransaccionesTemp);
-            } else if (strcmp(transaccion.username, cliente.username) == 0) {
-                encontrado = true;
-                // Revertir saldo
-                if (transaccion.monto > 0) {
-                    cliente.saldo -= transaccion.monto;
-                } else {
-                    cliente.saldo += abs(transaccion.monto);
-                }
-            }
+        	if (transaccion.id == id && strcmp(transaccion.username, cliente.username) == 0) {
+            	encontrado = true;
+				cliente.saldo -= transaccion.monto;
+        	} else {
+            	fwrite(&transaccion, sizeof(Transaccion), 1, arcTransaccionesTemp);
+        	}
         }
 
         fclose(arcTransacciones);
@@ -280,21 +258,7 @@ void eliminarTransaccion(Cliente& cliente) {
         rename("temp.dat", ARCHIVO_TRANSACCIONES);
 
         if (encontrado) {
-            FILE* arcClientes = fopen(ARCHIVO_CLIENTES, "rb+");
-            if (arcClientes) {
-                Cliente clienteTemp;
-                while (fread(&clienteTemp, sizeof(Cliente), 1, arcClientes)) {
-                    if (strcmp(clienteTemp.username, cliente.username) == 0) {
-                        fseek(arcClientes, -sizeof(Cliente), SEEK_CUR);
-                        fwrite(&cliente, sizeof(Cliente), 1, arcClientes);
-                        break;
-                    }
-                }
-                fclose(arcClientes);
-            } else {
-                cerr<<"Error al abrir el archivo de clientes."<<endl;
-            }
-
+        	actualizarSaldo(cliente);
             cout<<"Transaccion eliminada exitosamente."<<endl;
         } else {
             cout<<"No se encontro la transaccion con el ID especificado o no pertenece al usuario."<<endl;
@@ -306,7 +270,27 @@ void eliminarTransaccion(Cliente& cliente) {
     cout<<endl;
 }
 
-int contarTransacciones(const char* username) {
+void consultarSaldo() {
+    char username[25], clave[25];
+
+    cout<<"Ingrese Username: ";
+    cin.ignore();
+    cin.getline(username, 25);
+    
+    cout<<"Ingrese clave: ";
+    cin.getline(clave, 25);
+
+    Cliente cliente;
+    if (validarUsuario(username, clave, cliente)) {
+        cout<<"Saldo disponible: $"<<cliente.saldo<<endl;
+    } else {
+        cout<<"Usuario o clave incorrectos. Intente de nuevo."<<endl;
+    }
+    
+    cout<<endl;
+}
+
+int contarTransacciones(char* username) {
     FILE* arcTransacciones = fopen(ARCHIVO_TRANSACCIONES, "rb");
     int contador = 0;
 
@@ -335,8 +319,23 @@ void ordenarTransaccionesPorFecha(Transaccion transacciones[], int n) {
     }
 }
 
-void listarTransaccionesPaginadas(const char* username, int tamPagina) {
-	int totalTransacciones = contarTransacciones(username);
+void listarTransaccionesPaginadas(int tamPagina) {
+	char username[25], clave[25];
+	
+    cout<<"Ingrese Username: ";
+    cin.ignore();
+    cin.getline(username, 25);
+    
+    cout<<"Ingrese clave: ";
+    cin.getline(clave, 25);
+    
+    Cliente cliente;
+    if (!validarUsuario(username, clave, cliente)) {
+        cout<<"Usuario o clave incorrectos."<<endl;
+        return;
+    }
+    
+	int totalTransacciones = contarTransacciones(cliente.username);
 	if (totalTransacciones == 0) {
         cout<<"No hay transacciones para mostrar."<<endl;
         cout<<endl;
